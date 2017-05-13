@@ -1,16 +1,26 @@
 import tensorflow as tf
 import numpy as np
-
+import os
+import codecs
 from helpers import overwrite_graph
 from Preprocessing import Preprocessing
 from PredictiveCodingModel import PredictiveCodingModel
+from helpers import ensure_directory
 
 class Sampling:
 
     @overwrite_graph
     def __init__(self, params):
         self.params = params
-        self.prep = Preprocessing([], 2, self.params.batch_size)
+
+        # added
+        voca=None
+        if self.params.isUtf8 :
+            voca=self.loadVoca(params.input_file)
+        # added
+        print("vaca=",voca)
+        self.prep = Preprocessing([], 2, self.params.batch_size,voca)
+
         self.sequence = tf.placeholder(
             tf.float32, [1, 2, len(self.prep.VOCABULARY)])
         self.state = tf.placeholder(
@@ -43,3 +53,27 @@ class Sampling:
         choice = np.random.choice(len(dist), p=dist)
         choice = self.prep.VOCABULARY[choice]
         return choice
+
+    def loadVoca(self,inputfile):
+        cache_dir = './arxiv'
+        cache_dir = os.path.expanduser(cache_dir)
+        ensure_directory(cache_dir)
+        filename = os.path.join(cache_dir, inputfile)
+
+        with codecs.open(filename,'r', encoding='UTF-8') as file_:
+            self.data = file_.readlines()
+            
+        self.vocaMap= {}
+        self.VOCABULARY=''
+        seq=0
+        for i in range(len(self.data)):
+            for j in range(len(self.data[i])): 
+                if not self.data[i][j] in self.vocaMap  :
+                    if self.data[i][j] == '\r' or self.data[i][j] == '\n' :
+                        continue
+                    #print (self.data[i][j] )
+                    seq+=1 
+                    self.vocaMap[self.data[i][j]]=seq
+                    self.VOCABULARY += self.data[i][j]
+
+        return  self.VOCABULARY

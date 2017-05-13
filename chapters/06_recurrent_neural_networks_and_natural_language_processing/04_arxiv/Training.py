@@ -15,12 +15,14 @@ class Training:
     @overwrite_graph
     def __init__(self, params, cache_dir, categories, keywords, amount=None):
         self.params = params
-        self.texts = ArxivAbstracts(cache_dir, categories, keywords, amount).data
-        self.prep = Preprocessing(
-            self.texts, self.params.max_length, self.params.batch_size)
+        abstracts=ArxivAbstracts(cache_dir, categories, keywords, params.input_file,params.isUtf8,amount)
+        self.texts = abstracts.data
+        self.prep = Preprocessing(self.texts, self.params.max_length, self.params.batch_size,abstracts.VOCABULARY)
+
+
         self.sequence = tf.placeholder(
-            tf.float32,
-            [None, self.params.max_length, len(self.prep.VOCABULARY)])
+                                       tf.float32,
+                                       [None, self.params.max_length, len(self.prep.VOCABULARY)])
         self.model = PredictiveCodingModel(self.params, self.sequence)
         self._init_or_load_session()
 

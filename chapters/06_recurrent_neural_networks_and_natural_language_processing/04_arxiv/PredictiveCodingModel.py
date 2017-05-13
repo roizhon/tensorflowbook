@@ -41,11 +41,15 @@ class PredictiveCodingModel:
     def state(self):
         _, state = self.forward
         return state
-
+    def single_cell(self,size):
+        return tf.contrib.rnn.GRUCell(size)
+		
     @lazy_property
     def forward(self):
-        cell = self.params.rnn_cell(self.params.rnn_hidden)
-        cell = tf.nn.rnn_cell.MultiRNNCell([cell] * self.params.rnn_layers)
+        
+        #cell = tf.contrib.rnn.GRUCell(self.params.rnn_hidden)
+        #cell =  tf.contrib.rnn.MultiRNNCell([cell] * self.params.rnn_layers)
+        cell = tf.contrib.rnn.MultiRNNCell([self.single_cell(self.params.rnn_hidden) for _ in range(self.params.rnn_layers)],state_is_tuple=False)
         hidden, state = tf.nn.dynamic_rnn(
             inputs=self.data,
             cell=cell,
@@ -72,7 +76,7 @@ class PredictiveCodingModel:
 
     @lazy_property
     def logprob(self):
-        logprob = tf.mul(self.prediction, self.target)
+        logprob = tf.multiply(self.prediction, self.target)
         logprob = tf.reduce_max(logprob, reduction_indices=2)
         logprob = tf.log(tf.clip_by_value(logprob, 1e-10, 1.0)) / tf.log(2.0)
         return self._average(logprob)
